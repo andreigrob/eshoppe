@@ -56,10 +56,10 @@ const createAdministratorUser = async () => {
   }
 
   const userPassword = await prompt.hide("\x1b[33m Enter your password: \x1b[0m");
-  if (!passwordMeetsRequirements(userPassword)) {
+  /*if (!passwordMeetsRequirements(userPassword)) {
     console.log(`\x1b[31m Password does not meet the requirements. \x1b[0m`);
     return rl.close();
-  }
+  }*/
 
   const confirmPassword = await prompt.hide("\x1b[33m Confirm your password: \x1b[0m");
   if (userPassword !== confirmPassword) {
