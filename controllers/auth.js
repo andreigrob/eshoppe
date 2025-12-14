@@ -1,7 +1,7 @@
-const authService = require('../services/auth');
-const { validationResult } = require('express-validator');
+import { validateLogin, signup, sendResetPasswordToken, getUserBySearchParam, setNewPassword } from '../services/auth.js';
+import { validationResult } from 'express-validator';
 
-const getLogin = (req, res) => {
+export const getLogin = (req, res) => {
   const message = req.flash('error');
 
   res.render('auth/login', {
@@ -16,7 +16,7 @@ const getLogin = (req, res) => {
     validationErrors: [],
   });
 };
-const getSignup = (req, res) => {
+export const getSignup = (req, res) => {
   const message = req.flash('error');
 
   res.render('auth/signup', {
@@ -32,7 +32,7 @@ const getSignup = (req, res) => {
     validationErrors: [],
   });
 };
-const postLogin = (req, res, next) => {
+export const postLogin = (req, res, next) => {
   const { email, password } = req.body;
   const errors = validationResult(req);
 
@@ -49,7 +49,7 @@ const postLogin = (req, res, next) => {
       validationErrors: errors.array(),
     });
   }
-  authService.validateLogin(email, password)
+  validateLogin(email, password)
     .then(({ match, user }) => {
       if (match) {
         req.session.isLoggedIn = true;
@@ -78,7 +78,7 @@ const postLogin = (req, res, next) => {
       res.redirect('/login');
     });
 };
-const postSignup = (req, res, next) => {
+export const postSignup = (req, res, next) => {
   const { email, password, confirmPassword } = req.body;
   const errors = validationResult(req);
 
@@ -93,7 +93,7 @@ const postSignup = (req, res, next) => {
     });
   }
 
-  authService.signup({ email, password })
+  signup({ email, password })
     .then((status) => {
       if (status) {
         return res.redirect('/login');
@@ -106,7 +106,7 @@ const postSignup = (req, res, next) => {
       return next(error);
     });
 };
-const postLogout = (req, res) => {
+export const postLogout = (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       console.log(err);
@@ -114,7 +114,7 @@ const postLogout = (req, res) => {
     res.redirect('/');
   });
 };
-const getResetPassword = (req, res) => {
+export const getResetPassword = (req, res) => {
   const message = req.flash('error');
 
   res.render('auth/reset-password', {
@@ -123,8 +123,8 @@ const getResetPassword = (req, res) => {
     errorMessage: message[0],
   });
 };
-const postResetPassword = (req, res, next) => {
-  authService.sendResetPasswordToken(req.body.email)
+export const postResetPassword = (req, res, next) => {
+  sendResetPasswordToken(req.body.email)
     .then(() => res.redirect('/'))
     .catch((err) => {
       const error = new Error(err);
@@ -132,10 +132,10 @@ const postResetPassword = (req, res, next) => {
       return next(error);
     });
 };
-const getNewPassword = (req, res, next) => {
+export const getNewPassword = (req, res, next) => {
   const token = req.params.token;
 
-  authService.getUserBySearchParam({ resetToken: token })
+  getUserBySearchParam({ resetToken: token })
     .then((user) => {
       if (!user) {
         req.flash(
@@ -160,11 +160,11 @@ const getNewPassword = (req, res, next) => {
       return next(error);
     });
 };
-const postNewPassword = (req, res, next) => {
+export const postNewPassword = (req, res, next) => {
   const newPassword = req.body.password;
   const { userId, passwordToken } = req.body;
 
-  authService.setNewPassword(userId, newPassword, passwordToken)
+  setNewPassword(userId, newPassword, passwordToken)
     .then(() => res.redirect('/login'))
     .catch((err) => {
       const error = new Error(err);
@@ -173,7 +173,7 @@ const postNewPassword = (req, res, next) => {
     });
 };
 
-module.exports = {
+export default {
   getLogin,
   getSignup,
   postLogin,

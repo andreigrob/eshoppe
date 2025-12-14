@@ -1,11 +1,12 @@
-const express = require('express');
-const { body } = require('express-validator');
-const adminController = require('../controllers/admin');
-const fileContent = require('../middleware/fileContent');
-const isAdminUser = require('../middleware/isAdminUser');
-const isAuthenticated = require('../middleware/isAuthenticated');
+import { Router } from 'express';
+import { body } from 'express-validator';
+import { getAddProduct, getProducts, postAddProduct, getEditProduct, postEditProduct, deleteProduct, uploadImage } from '../controllers/admin.js';
 
-const adminRouter = express.Router();
+import fileContent from '../middleware/fileContent.js';
+import isAdminUser from '../middleware/isAdminUser.js';
+import isAuthenticated from '../middleware/isAuthenticated.js';
+
+const adminRouter = Router();
 
 const productValidator = [
   body('title')
@@ -22,20 +23,20 @@ const productValidator = [
 
 adminRouter.use(isAuthenticated);
 adminRouter.use(isAdminUser);
-adminRouter.get('/add-product', adminController.getAddProduct);
-adminRouter.get('/products', adminController.getProducts);
+adminRouter.get('/add-product', getAddProduct);
+adminRouter.get('/products', getProducts);
 adminRouter.post('/add-product',
   fileContent.single('image'),
   productValidator,
-  adminController.postAddProduct
+  postAddProduct
 );
-adminRouter.get('/edit-product/:productId', adminController.getEditProduct);
+adminRouter.get('/edit-product/:productId', getEditProduct);
 adminRouter.post('/edit-product',
   fileContent.single('image'),
   productValidator,
-  adminController.postEditProduct
+  postEditProduct
 );
-adminRouter.delete('/product/:productId', adminController.deleteProduct);
-adminRouter.post('/upload-image', fileContent.single('upload'), adminController.uploadImage);
+adminRouter.delete('/product/:productId', deleteProduct);
+adminRouter.post('/upload-image', fileContent.single('upload'), uploadImage);
 
-module.exports = adminRouter;
+export default adminRouter;

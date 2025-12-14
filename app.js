@@ -1,22 +1,22 @@
-require('dotenv').config({ path: './w3s-dynamic-storage/.env' });
-const path = require('path');
-const express = require('express');
-const flash = require('connect-flash');
-const helmet = require('helmet');
-const compression = require('compression');
-const favicon = require('serve-favicon');
-const morgan = require('morgan')
-const errorController = require('./controllers/error');
-const adminRoutes = require('./routes/admin');
-const shopRoutes = require('./routes/shop');
-const authRoutes = require('./routes/auth');
-const attachUserInfo = require('./middleware/attachUserInfo');
-const sessionProvider = require('./middleware/sessionHandler');
-const dbAdapter = require('./database');
+import dotenv from 'dotenv';
+dotenv.config({ path: './w3s-dynamic-storage/.env' });
+import express, { urlencoded, static as expressStatic } from 'express';
+import flash from 'connect-flash';
+import helmet from 'helmet';
+import compression from 'compression';
+import favicon from 'serve-favicon';
+import morgan from 'morgan';
+import { get500, get404 } from './controllers/error.js';
+import adminRoutes from './routes/admin.js';
+import shopRoutes from './routes/shop.js';
+import authRoutes from './routes/auth.js';
+import attachUserInfo from './middleware/attachUserInfo.js';
+import sessionProvider from './middleware/sessionHandler.js';
+import { initialize } from './database/sqlite.js';
 
 const port = 3000;
 const app = express();
-const uploadsPath = path.join(__dirname, 'w3s-dynamic-storage/uploads');
+const uploadsPath = 'w3s-dynamic-storage/uploads';
 
 app.set('view engine', 'ejs');
 app.set('views', 'views');
@@ -24,12 +24,12 @@ app.set('views', 'views');
 app.use(morgan('tiny'));
 app.use(helmet.hidePoweredBy({ setTo: 'X-Frame-Options' }));
 app.use(compression());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(uploadsPath));
+app.use(urlencoded({ extended: true }));
+app.use(expressStatic('public'));
+app.use(expressStatic(uploadsPath));
 app.use(sessionProvider);
 app.use(flash());
-app.use(favicon(path.join(__dirname, 'public', 'images', 'favicon.ico')));
+app.use(favicon('public/images/favicon.ico'));
 app.use(attachUserInfo);
 
 // App routes
@@ -38,11 +38,11 @@ app.use(shopRoutes);
 app.use(authRoutes);
 
 // Error handler
-app.get('/500', errorController.get500);
-app.use(errorController.get404);
-app.use(errorController.get500);
+app.get('/500', get500);
+app.use(get404);
+app.use(get500);
 
-dbAdapter.initialize()
+initialize()
   .then(() => {
     app.listen(port);
     console.log(`server listening at ${port}`)

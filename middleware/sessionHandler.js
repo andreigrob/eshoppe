@@ -1,3 +1,3 @@
-const sessionProvider = require('../session/sqlite');
+import sessionProvider from '../session/sqlite.js';
 
-module.exports = sessionProvider;
+export default sessionProvider;

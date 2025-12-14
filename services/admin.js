@@ -1,54 +1,54 @@
-const uuidV4 = require('uuidv4');
-const path = require('path');
-const dbAdapter = require('../database');
-const fileUtils = require('../util/file');
+import { v4 as uuid } from 'uuid';
+import { extname } from 'path';
+import { addProduct as _addProduct, getProductById, updateProduct as _updateProduct, getProducts as _getProducts, removeProductFromCart, deleteProduct as _deleteProduct } from '../database/sqlite.js';
+import { uploadFile as _uploadFile, deleteFile } from '../util/file.js';
 
-const addProduct = (product) => {
-  const fileExtension = path.extname(product.image.originalname);
-  const key = `${uuidV4.uuid()}${fileExtension}`;
+export const addProduct = (product) => {
+  const fileExtension = extname(product.image.originalname);
+  const key = `${uuid()}${fileExtension}`;
   
-  return fileUtils.uploadFile(key, product.image)
+  return _uploadFile(key, product.image)
     .then(() => {
       product.imageUrl = `/${key}`;
       product.imageKey = key;
       delete product.image;
-      return dbAdapter.addProduct(product);
+      return _addProduct(product);
     })
 };
-const getProduct = (productId) => dbAdapter.getProductById(productId);
-const updateProduct = async (product) => {
+export const getProduct = (productId) => getProductById(productId);
+export const updateProduct = async (product) => {
   if (product.image) {
-    const fileExtension = path.extname(product.image.originalname);
-    const key = `${uuidV4.uuid()}${fileExtension}`;
-    await fileUtils.uploadFile(key, product.image)
+    const fileExtension = extname(product.image.originalname);
+    const key = `${uuid()}${fileExtension}`;
+    await _uploadFile(key, product.image)
 
     product.imageUrl = `/${key}`;
     product.imageKey = key;
     delete product.image;
   }
 
-  return await dbAdapter.updateProduct(product);
+  return await _updateProduct(product);
 };
-const getProducts = (page, limit, userId) => dbAdapter.getProducts(page, limit, userId);
-const deleteProduct = (productId) => {
+export const getProducts = (page, limit, userId) => _getProducts(page, limit, userId);
+export const deleteProduct = (productId) => {
   let product;
-  return dbAdapter.getProductById(productId)
+  return getProductById(productId)
     .then((p) => {
       product = p;
       if (product) {
-        return dbAdapter.removeProductFromCart(productId)
+        return removeProductFromCart(productId)
       }
       throw new Error('product not found');
     })
-    .then(() => fileUtils.deleteFile(product.imageKey))
-    .then(() => dbAdapter.deleteProduct(productId))
+    .then(() => deleteFile(product.imageKey))
+    .then(() => _deleteProduct(productId))
     .catch(() => false);
 };
-const uploadFile = (file) => {
-  const fileExtension = path.extname(file.originalname);
-  const key = `${uuidV4.uuid()}${fileExtension}`;
+export const uploadFile = (file) => {
+  const fileExtension = extname(file.originalname);
+  const key = `${uuid()}${fileExtension}`;
   
-  return fileUtils.uploadFile(key, file)
+  return _uploadFile(key, file)
     .then(() => ({
       uploaded: true,
       url: `/${key}`,
@@ -56,7 +56,7 @@ const uploadFile = (file) => {
     }));
 };
 
-module.exports = {
+export default {
   addProduct,
   getProduct,
   updateProduct,

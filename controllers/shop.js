@@ -1,10 +1,10 @@
-const shopService = require('../services/shop');
+import { getProducts as _getProducts, getProduct as _getProduct, getCart as _getCart, addToCart, removeFromCart, checkout, processOrder, getOrders as _getOrders, getAddressByUserId, addOrUpdateAddress } from '../services/shop.js';
 
-const getProducts = (req, res, next) => {
+export const getProducts = (req, res, next) => {
   const page = +req.query.page || 1;
   const limit = 8;
 
-  shopService.getProducts(page, limit)
+  _getProducts(page, limit)
     .then(({ count, products }) => {
       res.render('shop/product-list', {
         prods: products,
@@ -24,8 +24,8 @@ const getProducts = (req, res, next) => {
       return next(error);
     });
 };
-const getProduct = (req, res, next) => {
-  shopService.getProduct(req.params.productId)
+export const getProduct = (req, res, next) => {
+  _getProduct(req.params.productId)
     .then((product) => {
       res.render('shop/product-detail', {
         product,
@@ -39,11 +39,11 @@ const getProduct = (req, res, next) => {
       return next(error);
     });
 };
-const getHomepage = (req, res, next) => {
+export const getHomepage = (req, res, next) => {
   const page = +req.query.page || 1;
   const limit = 8;
 
-  shopService.getProducts(page, limit)
+  _getProducts(page, limit)
     .then(({ count, products }) => {
       res.render('shop/index', {
         pageTitle: 'Home',
@@ -63,8 +63,8 @@ const getHomepage = (req, res, next) => {
       return next(error);
     });
 };
-const getCart = (req, res, next) => {
-  shopService.getCart(req.user)
+export const getCart = (req, res, next) => {
+  _getCart(req.user)
     .then((products) => {
       res.render('shop/cart', {
         path: '/cart',
@@ -78,8 +78,8 @@ const getCart = (req, res, next) => {
       return next(error);
     });
 };
-const postCart = (req, res, next) => {
-  shopService.addToCart(req.body.productId, req.user)
+export const postCart = (req, res, next) => {
+  addToCart(req.body.productId, req.user)
     .then(() => {
       res.redirect('/cart');
     })
@@ -89,8 +89,8 @@ const postCart = (req, res, next) => {
       return next(error);
     });
 };
-const postCartDeleteProduct = (req, res, next) => {
-  shopService.removeFromCart(req.body.productId, req.user)
+export const postCartDeleteProduct = (req, res, next) => {
+  removeFromCart(req.body.productId, req.user)
     .then((result) => {
       res.redirect('/cart');
     })
@@ -100,8 +100,8 @@ const postCartDeleteProduct = (req, res, next) => {
       return next(error);
     });
 };
-const getCheckout = (req, res, next) => {
-  shopService.checkout(req.user, req)
+export const getCheckout = (req, res, next) => {
+  checkout(req.user, req)
     .then(({ session, totalCost, products }) => {
       res.render('shop/checkout', {
         path: '/checkout',
@@ -118,8 +118,8 @@ const getCheckout = (req, res, next) => {
       return next(error);
     });
 };
-const getCheckoutSuccess = (req, res, next) => {
-  shopService.processOrder(req.user)
+export const getCheckoutSuccess = (req, res, next) => {
+  processOrder(req.user)
     .then(() => {
       res.redirect('/orders');
     })
@@ -129,8 +129,8 @@ const getCheckoutSuccess = (req, res, next) => {
       return next(error);
     });
 };
-const getOrders = (req, res, next) => {
-  shopService.getOrders(req.user.id)
+export const getOrders = (req, res, next) => {
+  _getOrders(req.user.id)
     .then((orders) => {
       res.render('shop/orders', {
         path: '/orders',
@@ -144,22 +144,22 @@ const getOrders = (req, res, next) => {
       return next(error);
     });
 };
-const getAbout = (req, res, next) => {
+export const getAbout = (_req, res, _next) => {
   res.render('shop/about', {
     pageTitle: 'About',
     path: '/about',
   });
 };
-const getContact = (req, res, next) => {
+export const getContact = (_req, res, _next) => {
   res.render('shop/contact', {
     pageTitle: 'About',
     path: '/about',
   });
 };
-const getMyPage = (req, res, next) => {
+export const getMyPage = (req, res, next) => {
   Promise.all([
-    shopService.getOrders(req.user.id),
-    shopService.getAddressByUserId(req.user.id),
+    _getOrders(req.user.id),
+    getAddressByUserId(req.user.id),
   ])
     .then(([orders, shipmentAddress]) => {
       res.render('shop/mypage', {
@@ -176,8 +176,8 @@ const getMyPage = (req, res, next) => {
       return next(error);
     });
 };
-const getShipment = (req, res, next) => {
-  shopService.getAddressByUserId(req.user.id)
+export const getShipment = (req, res, next) => {
+  getAddressByUserId(req.user.id)
     .then((shipmentAddress) => {
       res.render('shop/shipment', {
         pageTitle: 'Shipment',
@@ -191,14 +191,14 @@ const getShipment = (req, res, next) => {
       return next(error);
     });
 };
-const postShipment = (req, res, next) => {
+export const postShipment = (req, res, next) => {
   const { firstname, lastname, phone, address, postalcode, city, state, country } = req.body;
   const shipmentAddress = {
     userId: req.user.id,
     firstname, lastname, phone, address, postalcode, city, state, country
   };
 
-  shopService.addOrUpdateAddress(shipmentAddress)
+  addOrUpdateAddress(shipmentAddress)
     .then(() => getMyPage(req, res, next))
     .catch((err) => {
       const error = new Error(err);
@@ -207,7 +207,7 @@ const postShipment = (req, res, next) => {
     });
 };
 
-module.exports = {
+export default {
   getProducts,
   getProduct,
   getHomepage,

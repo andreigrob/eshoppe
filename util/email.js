@@ -1,8 +1,8 @@
-const nodemailer = require('nodemailer');
+import { createTransport } from 'nodemailer';
 const { EMAIL_HOST, EMAIL_PORT, EMAIL_AUTH_USER, EMAIL_AUTH_PASS, EMAIL_FROM } = process.env;
 
 const from = EMAIL_FROM
-const transporter = nodemailer.createTransport({
+const transporter = createTransport({
   host: EMAIL_HOST,
   port: parseInt(EMAIL_PORT),
   auth: {
@@ -11,12 +11,12 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const sendEmail = (options) => {
+export const sendEmail = (options) => {
   const { to, subject, html } = options;
 
   return transporter.sendMail({ from, to, subject, html });
 }
 
-module.exports = {
+export default {
   sendEmail,
 };

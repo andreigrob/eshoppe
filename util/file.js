@@ -1,27 +1,21 @@
-const fs = require('fs');
-const path = require('path');
+import { existsSync, mkdirSync, writeFileSync, unlinkSync } from 'fs';
 
-const UploadsPath = path.join(__dirname, '../w3s-dynamic-storage/uploads');
+const UploadsPath = 'w3s-dynamic-storage/uploads'
 
-if (!fs.existsSync(UploadsPath)) {
-  fs.mkdirSync(UploadsPath);
+if (!existsSync(UploadsPath)) {
+  mkdirSync(UploadsPath);
 }
 
-const uploadFile = async (key, file) => {
-  fs.writeFileSync(path.join(UploadsPath, key), file.buffer);
+export const uploadFile = async (key, file) => {
+  writeFileSync(join(UploadsPath, key), file.buffer);
   return key;
 }
-const deleteFile = async (key) => {
+export const deleteFile = async (key) => {
   try {
-    fs.unlinkSync(path.join(UploadsPath, key));
+    unlinkSync(join(UploadsPath, key));
   } catch (err) {
     console.error(err)
   }
 
   return true;
-};
-
-module.exports = {
-  uploadFile,
-  deleteFile,
 };

@@ -1,4 +1,4 @@
-const multer = require('multer');
+import multer from 'multer';
 
 const allowedMimeTypes = new Set([
   'image/png',
@@ -11,4 +11,4 @@ const upload = multer({
   },
 });
 
-module.exports = upload;
+export default upload;

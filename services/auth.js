@@ -1,13 +1,13 @@
-const uuidV4 = require('uuidv4');
-const dbAdapter = require('../database');
-const emailUtil = require('../util/email');
+import { v4 as uuid } from 'uuid';
+import { validateLogin as _validateLogin, signup as _signup, attachResetPasswordToken, getUserBySearchParam as _getUserBySearchParam, resetPassword } from '../database/sqlite.js';
+import { sendEmail } from '../util/email.js';
 
-const validateLogin = (email, password) => dbAdapter.validateLogin(email, password);
-const signup = (user) => {
-  return dbAdapter.signup(user)
+export const validateLogin = (email, password) => _validateLogin(email, password);
+export const signup = (user) => {
+  return _signup(user)
     .then((status) => {
       if (status) {
-        emailUtil.sendEmail({
+        sendEmail({
           to: user.email,
           subject: 'Welcome to Web shop',
           html: '<h3>You have successfully signed up.</h3>',
@@ -16,12 +16,12 @@ const signup = (user) => {
       return status;
     });
 };
-const sendResetPasswordToken = (email) => {
-  const token = uuidV4.uuid();
+export const sendResetPasswordToken = (email) => {
+  const token = uuid();
 
-  return dbAdapter.attachResetPasswordToken(email, token)
+  return attachResetPasswordToken(email, token)
     .then(() => {
-      emailUtil.sendEmail({
+      sendEmail({
         to: email,
         subject: 'Password reset',
         html: `
@@ -32,11 +32,11 @@ const sendResetPasswordToken = (email) => {
       });
     })
 };
-const getUserBySearchParam = (param) => dbAdapter.getUserBySearchParam(param);
-const setNewPassword = (userId, newPassword, passwordToken) => {
-  return dbAdapter.resetPassword(userId, newPassword, passwordToken)
+export const getUserBySearchParam = (param) => _getUserBySearchParam(param);
+export const setNewPassword = (userId, newPassword, passwordToken) => {
+  return resetPassword(userId, newPassword, passwordToken)
     .then(() => {
-      emailUtil.sendEmail({
+      sendEmail({
         to: resetUser.email,
         subject: 'Password reset successful',
         html: `<p>Your Web shop password has been changed.</p>`,
@@ -44,7 +44,7 @@ const setNewPassword = (userId, newPassword, passwordToken) => {
     })
 };
 
-module.exports = {
+export default {
   validateLogin,
   signup,
   sendResetPasswordToken,

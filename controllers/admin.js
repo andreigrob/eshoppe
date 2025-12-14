@@ -1,7 +1,7 @@
-const adminService = require('../services/admin');
-const { validationResult } = require('express-validator');
+import { addProduct, getProduct, updateProduct, getProducts as _getProducts, deleteProduct as _deleteProduct, uploadFile } from '../services/admin.js';
+import { validationResult } from 'express-validator';
 
-const getAddProduct = (req, res, next) => {
+export const getAddProduct = (_req, res, _next) => {
   res.render('admin/add-edit-form', {
     pageTitle: 'Add Product',
     path: '/admin/add-product',
@@ -11,7 +11,7 @@ const getAddProduct = (req, res, next) => {
     validationErrors: [],
   });
 };
-const postAddProduct = (req, res, next) => {
+export const postAddProduct = (req, res, next) => {
   const { title, price, description, details } = req.body;
   const image = req.file;
 
@@ -50,7 +50,7 @@ const postAddProduct = (req, res, next) => {
     });
   }
   const newProduct = { title, price, description, details, image, userId: req.user.id };
-  adminService.addProduct(newProduct)
+  addProduct(newProduct)
     .then(() => {
       res.redirect('/admin/products');
     })
@@ -60,13 +60,13 @@ const postAddProduct = (req, res, next) => {
       return next(error);
     });
 };
-const getEditProduct = (req, res, next) => {
+export const getEditProduct = (req, res, next) => {
   const editMode = req.query.edit;
 
   if (!editMode) {
     return res.redirect('/');
   }
-  adminService.getProduct(req.params.productId)
+  getProduct(req.params.productId)
     .then((product) => {
       if (!product) {
         return res.redirect('/');
@@ -87,7 +87,7 @@ const getEditProduct = (req, res, next) => {
       return next(error);
     });
 };
-const postEditProduct = (req, res, next) => {
+export const postEditProduct = (req, res, next) => {
   const { productId, title, price, description, details } = req.body;
   const image = req.file;
   const errors = validationResult(req);
@@ -111,7 +111,7 @@ const postEditProduct = (req, res, next) => {
   }
   const product = { productId, title, price, description, details, image, userId: req.user.id };
 
-  adminService.updateProduct(product)
+  updateProduct(product)
     .then((status) => {
       res.redirect(status ? '/admin/products' : '/')
     })
@@ -121,12 +121,12 @@ const postEditProduct = (req, res, next) => {
       return next(error);
     });
 };
-const getProducts = (req, res, next) => {
+export const getProducts = (req, res, next) => {
   const limit = 8;
   const page = +req.query.page || 1;
   const userId = req.user.id;
 
-  adminService.getProducts(page, limit, userId)
+  _getProducts(page, limit, userId)
     .then(({ count, products }) => {
       res.render('admin/products', {
         prods: products,
@@ -146,8 +146,8 @@ const getProducts = (req, res, next) => {
       return next(error);
     });
 };
-const deleteProduct = (req, res, next) => {
-  adminService.deleteProduct(req.params.productId)
+export const deleteProduct = (req, res, next) => {
+  _deleteProduct(req.params.productId)
     .then(() => {
       res.status(200).json({ message: 'Success!' });
     })
@@ -155,7 +155,7 @@ const deleteProduct = (req, res, next) => {
       res.status(500).json({ message: 'Deleting product failed.' });
     });
 };
-const uploadImage = (req, res, next) => {
+export const uploadImage = (req, res, next) => {
   if (!req.file) {
     return res.status(400).json({
       uploaded: false,
@@ -164,13 +164,13 @@ const uploadImage = (req, res, next) => {
       }
     });
   }
-  return adminService.uploadFile(req.file)
+  return uploadFile(req.file)
     .then((data) => {
       return res.status(200).json(data);
     });
 };
 
-module.exports = {
+export default {
   getAddProduct,
   postAddProduct,
   getEditProduct,

@@ -1,6 +1,6 @@
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
-const isValidToken = async (token) => {
+export const isValidToken = async (token) => {
   const data = {
     valid: false,
     message: '',
@@ -23,7 +23,3 @@ const isValidToken = async (token) => {
 
   return data;
 }
-
-module.exports = {
-  isValidToken,
-};

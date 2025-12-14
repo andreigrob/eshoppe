@@ -1,4 +1,4 @@
-module.exports = (req, res, next) => {
+export default (req, _res, next) => {
   if (req.session.user && req.session.user.role === 'admin') {
     return next();
   }

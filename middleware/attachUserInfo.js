@@ -1,9 +1,9 @@
-const dbAdapter = require('../database').default.default;
+import { getUserBySearchParam } from '../database/sqlite.js';
 
-module.exports = (req, res, next) => {
+export default (req, res, next) => {
   res.locals.isAuthenticated = req.session.isLoggedIn;
   if (req.session.user) {
-    dbAdapter.getUserBySearchParam({ email: req.session.user.email })
+    getUserBySearchParam({ email: req.session.user.email })
       .then((user) => {
         if (user) {
           req.user = user;

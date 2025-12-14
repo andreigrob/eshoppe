@@ -1,9 +1,12 @@
-const session = require('express-session')
-const sqlite = require('better-sqlite3');
-const SqliteStore = require('better-sqlite3-session-store')(session);
+import session from 'express-session';
+import sqlite from 'better-sqlite3';
+import sqlSession from 'better-sqlite3-session-store';
+
+const Session = sqlSession(session)
 
 const db = new sqlite(process.env.SQLITE_DB);
-const store = new SqliteStore({
+
+const store = new Session({
   client: db,
 });
 const sqliteSessionProvider = session({
@@ -13,4 +16,4 @@ const sqliteSessionProvider = session({
   saveUninitialized: true,
 });
 
-module.exports = sqliteSessionProvider;
+export default sqliteSessionProvider;

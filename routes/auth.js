@@ -1,13 +1,13 @@
-const express = require('express');
-const { check, body } = require('express-validator');
-const authController = require('../controllers/auth');
-const dbAdapter = require('../database');
-const { isValidToken } = require('../util/recaptcha');
+import { Router } from 'express';
+import { check, body } from 'express-validator';
+import { getLogin, getSignup, postLogin, postSignup, postLogout, getResetPassword, postResetPassword, getNewPassword, postNewPassword } from '../controllers/auth.js';
+import { getUserBySearchParam } from '../database/sqlite.js';
+import { isValidToken } from '../util/recaptcha.js';
 
-const authRouter = express.Router();
+const authRouter = Router();
 
-authRouter.get('/login', authController.getLogin);
-authRouter.get('/signup', authController.getSignup);
+authRouter.get('/login', getLogin);
+authRouter.get('/signup', getSignup);
 authRouter.post('/login',
   [
     body('email')
@@ -26,7 +26,7 @@ authRouter.post('/login',
         });
     }),
   ],
-  authController.postLogin
+  postLogin
 );
 authRouter.post('/signup',
   [
@@ -34,7 +34,7 @@ authRouter.post('/signup',
       .isEmail()
       .withMessage('Please enter a valid email.')
       .custom((value, { req }) => {
-        return dbAdapter.getUserBySearchParam({ email: value })
+        return getUserBySearchParam({ email: value })
           .then((userDoc) => {
             if (userDoc) {
               return Promise.reject('Email already in use.');
@@ -63,12 +63,12 @@ authRouter.post('/signup',
         });
     })
   ],
-  authController.postSignup
+  postSignup
 );
-authRouter.post('/logout', authController.postLogout);
-authRouter.get('/reset-password', authController.getResetPassword);
-authRouter.post('/reset-password', authController.postResetPassword);
-authRouter.get('/reset-password/:token', authController.getNewPassword);
-authRouter.post('/new-password', authController.postNewPassword);
+authRouter.post('/logout', postLogout);
+authRouter.get('/reset-password', getResetPassword);
+authRouter.post('/reset-password', postResetPassword);
+authRouter.get('/reset-password/:token', getNewPassword);
+authRouter.post('/new-password', postNewPassword);
 
-module.exports = authRouter;
+export default authRouter;

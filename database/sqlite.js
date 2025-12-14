@@ -2,7 +2,7 @@
 
 import dotenv from 'dotenv'
 dotenv.config({ path: './w3s-dynamic-storage/.env' })
-import { compare, hash } from 'bcryptjs'
+import bcrypt from 'bcryptjs'
 import { v4 } from 'uuid'
 import moment from 'moment'
 import Sql from 'better-sqlite3'
@@ -54,7 +54,7 @@ const createTableQueries = [
 
 const createTableSql = createTableQueries.map((q) => db.prepare(q))
 
-function initialize () {
+export function initialize () {
   /*dropQueries.forEach((q) => {
     db.prepare(q).run()
   })*/
@@ -68,7 +68,7 @@ function reject (r, e, m) {
 }
 
 const newProductSql = db.prepare('insert into Products (Id, Title, Price, Description, Details, ImageUrl, ImageKey) values (?, ?, ?, ?, ?, ?, ?)')
-function addProduct (p) {
+export function addProduct (p) {
   return new Promise((resolve, r) => {
     try {
       newProductSql.run(uuid(), p.title, p.price, p.description, p.details, p.imageUrl, p.imageKey)
@@ -80,7 +80,7 @@ function addProduct (p) {
 }
 
 const readProductSql = db.prepare('select * from Products where Id = ?')
-function getProductById (id) {
+export function getProductById (id) {
   return new Promise((resolve, r) => {
     try {
       resolve(readProductSql.get(id))
@@ -91,7 +91,7 @@ function getProductById (id) {
 }
 
 const updateProductSql = db.prepare('update Products set (Title, Price, Description, Details, ImageUrl, ImageKey) = (?, ?, ?, ?, ?, ?) where Id = ?')
-function updateProduct (p) {
+export function updateProduct (p) {
   return getProductById(p.productId).then((product) => {
       if (!product) {
         throw new Error('Product not found')
@@ -106,7 +106,7 @@ function updateProduct (p) {
 
 const countProductsSql = db.prepare('select count(*) as Count from Products')
 const readProductsSql = db.prepare('select * from Products limit ? offset ?')
-function getProducts (page, limit) {
+export function getProducts (page, limit) {
   return new Promise((resolve, r) => {
     try {
       const products = readProductsSql.all(limit, (page - 1) * limit) || [];
@@ -118,7 +118,7 @@ function getProducts (page, limit) {
 }
 
 const deleteProductSql = db.prepare('delete from Products where Id = ?')
-function deleteProduct (id) {
+export function deleteProduct (id) {
   return new Promise((resolve, r) => {
     try {
       deleteProductSql.run(id)
@@ -129,11 +129,11 @@ function deleteProduct (id) {
   })
 }
 
-function removeProductFromCart (_productId) {
+export function removeProductFromCart (_productId) {
   // Removed from while fetching the cart items.
 }
 
-function getUserBySearchParam (param) {
+export function getUserBySearchParam (param) {
   return new Promise((resolve, r) => {
     try {
       const condition = Object.keys(param).map((k) => `${k} = '${param[k]}'`).join(' AND ')
@@ -146,19 +146,19 @@ function getUserBySearchParam (param) {
   })
 }
 
-function validateLogin (email, password) {
+export function validateLogin (email, password) {
   let user
   return getUserBySearchParam({ email }).then((userInfo) => {
       user = userInfo
-      return user ? compare(password, user.password) : false
+      return user ? bcrypt.compare(password, user.password) : false
     }).then((match) => ({ match, user })).catch((e) => {
       console.log('Failed to validate login', e)
       throw e
     })
 }
 const signupSql = db.prepare('insert into Users (id, email, password, role) values (?, ?, ?, ?)');
-function signup (user) {
-  return hash(user.password, 12).then((password) => {
+export function signup (user) {
+  return bcrypt.hash(user.password, 12).then((password) => {
       signupSql.run(uuid(), user.email, password, user.role || '')
       return true
     }).catch((e) => {
@@ -182,7 +182,7 @@ const addAdminUser = signup
 };*/
 
 const updateTokenSql = db.prepare('update Users set resetToken = ? where email = ?')
-function attachResetPasswordToken (email, token) {
+export function attachResetPasswordToken (email, token) {
   return getUserBySearchParam({ email }).then((user) => {
       if (!user) {
         throw new Error('No account with the provided email address exists.')
@@ -195,11 +195,11 @@ function attachResetPasswordToken (email, token) {
     })
 }
 
-const resetPassword = (userId, password, resetToken) => {
+export const resetPassword = (userId, password, resetToken) => {
   return getUserBySearchParam({ id: userId, resetToken })
     .then((user) => {
       resetUser = user;
-      return hash(password, 12);
+      return bcrypt.hash(password, 12);
     })
     .then((hashedPassword) => {
       const stmt = db.prepare('UPDATE Users SET password = ?, resetToken = ? WHERE id = ?');
@@ -223,7 +223,7 @@ const deleteAdminUser = (userEmail) => {
     }
   });
 }
-const createOrder = (user, products) => {
+export const createOrder = (user, products) => {
   return new Promise((resolve, reject) => {
     try {
       const orderId = uuid();
@@ -237,7 +237,7 @@ const createOrder = (user, products) => {
     }
   });
 };
-const getOrders = (userId) => {
+export const getOrders = (userId) => {
   return new Promise((resolve, reject) => {
     try {
       const orders = db.prepare(`SELECT * from Orders WHERE userId = ?`).all(userId);
@@ -255,7 +255,7 @@ const getOrders = (userId) => {
     }
   });
 };
-const addToCart = (user, product) => {
+export const addToCart = (user, product) => {
   return getUserBySearchParam({ email: user.email })
     .then((userInfo) => {
       const cart = JSON.parse(userInfo.cart || '{"items":[]}');
@@ -281,7 +281,7 @@ const addToCart = (user, product) => {
       return true;
     });
 };
-const getCart = (user) => {
+export const getCart = (user) => {
   let cartProducts;
   return getUserBySearchParam({ email: user.email })
     .then((userInfo) => {
@@ -298,7 +298,7 @@ const getCart = (user) => {
       }, []);
     });
 }
-const removeFromCart = (user, productId) => {
+export const removeFromCart = (user, productId) => {
   return getUserBySearchParam({ email: user.email })
     .then((userInfo) => {
       const cart = JSON.parse(userInfo.cart || '{"items":[]}');
@@ -310,7 +310,7 @@ const removeFromCart = (user, productId) => {
       return true;
     });
 };
-const clearCart = (user) => {
+export const clearCart = (user) => {
   return new Promise((resolve, reject) => {
     try {
       const stmt = db.prepare('UPDATE Users SET cart = ? WHERE email = ?');
@@ -351,7 +351,7 @@ const updateAddress = (shipmentAddress) => {
     }
   });
 };
-const getAddressByUserId = (userId) => {
+export const getAddressByUserId = (userId) => {
   return new Promise((resolve, reject) => {
     try {
       const stmt = db.prepare(`SELECT * from ShipmentAddresses WHERE userId = ?`);
@@ -368,7 +368,7 @@ const getAddressByUserId = (userId) => {
     }
   });
 };
-const addOrUpdateAddress = (shipmentAddress) => {
+export const addOrUpdateAddress = (shipmentAddress) => {
   return getAddressByUserId(shipmentAddress.userId)
   .then((savedAddress) => {
     return savedAddress.id ? updateAddress(shipmentAddress) : createAddress(shipmentAddress);
@@ -383,29 +383,3 @@ const addOrUpdateAddress = (shipmentAddress) => {
     4. Test if updateProduct function updates the details of a product correctly.
     5. Test if getProducts function returns the correct list of products based on pagination parameters.
 */
-
-
-export default {
-  initialize,
-  addProduct,
-  getProductById,
-  updateProduct,
-  getProducts,
-  deleteProduct,
-  getUserBySearchParam,
-  removeProductFromCart,
-  validateLogin,
-  signup,
-  addAdminUser,
-  attachResetPasswordToken,
-  resetPassword,
-  deleteAdminUser,
-  createOrder,
-  getOrders,
-  addToCart,
-  getCart,
-  removeFromCart,
-  clearCart,
-  getAddressByUserId,
-  addOrUpdateAddress,
-};
