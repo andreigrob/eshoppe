@@ -150,7 +150,7 @@ const getNewPassword = (req, res, next) => {
         path: '/new-password',
         pageTitle: 'New Password',
         errorMessage: message[0],
-        userId: user.Id.toString(),
+        userId: user.id.toString(),
         passwordToken: token,
       });
     })

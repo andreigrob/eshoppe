@@ -45,10 +45,10 @@ const dropQueries = [
 
 
 const createTableQueries = [
-  `create table if not exists Users (Id text primary key, Email text not null, Password text not null, Role text not null default '', ResetToken text not null default '', Cart text not null default '{"items":[]}')`,
-  'create table if not exists ShipmentAddresses (Id text primary key, UserId text unique, Address text not null, foreign key (UserId) references Users(Id) on delete cascade)',
-  `create table if not exists Products (Id text primary key, Title text not null, Price decimal(10, 2) not null, Description text not null default '', ImageUrl text not null default '', ImageKey text not null default '', Details longtext not null default '')`,
-  'create table if not exists Orders (Id text primary key, UserId text not null, Email text not null, Date text not null, Products text not null, foreign key (UserId) references Users(Id) on delete cascade)',
+  `create table if not exists Users (id text primary key, email text not null, password text not null, role text not null default '', resetToken text not null default '', cart text not null default '{"items":[]}')`,
+  'create table if not exists ShipmentAddresses (id text primary key, userId text unique, address text not null, foreign key (userId) references Users(id) on delete cascade)',
+  `create table if not exists Products (id text primary key, title text not null, price decimal(10, 2) not null, description text not null default '', imageUrl text not null default '', imageKey text not null default '', details longtext not null default '')`,
+  'create table if not exists Orders (id text primary key, userId text not null, email text not null, date text not null, products text not null, foreign key (userId) references Users(id) on delete cascade)',
 ]
 
 const createTableSql = createTableQueries.map((q) => db.prepare(q))
@@ -149,7 +149,7 @@ function validateLogin (email, password) {
   let user
   return getUserBySearchParam({ email }).then((userInfo) => {
       user = userInfo
-      return user ? bcrypt.compare(password, user.Password) : false
+      return user ? bcrypt.compare(password, user.password) : false
     }).then((match) => ({ match, user })).catch((e) => {
       console.log('Failed to validate login', e)
       throw e
@@ -157,8 +157,8 @@ function validateLogin (email, password) {
 }
 const signupSql = db.prepare('insert into Users (id, email, password, role) values (?, ?, ?, ?)');
 function signup (user) {
-  return bcrypt.hash(user.Password, 12).then((password) => {
-      signupSql.run(uuid(), user.Email, password, user.Role || '')
+  return bcrypt.hash(user.password, 12).then((password) => {
+      signupSql.run(uuid(), user.email, password, user.role || '')
       return true
     }).catch((e) => {
       console.log('Failed to signup', e)
@@ -171,7 +171,7 @@ const addAdminUser = signup
   return bcrypt.hash(user.password, 12)
     .then((hashedPassword) => {
       const stmt = db.prepare('INSERT INTO Users (id, email, password, role) VALUES (?, ?, ?, ?)');
-      stmt.run(uuid(), user.Email, hashedPassword, user.Role || '');
+      stmt.run(uuid(), user.email, hashedPassword, user.role || '');
       return true;
     })
     .catch((err) => {
@@ -228,7 +228,7 @@ const createOrder = (user, products) => {
       const orderId = uuid();
       const date = moment().format('YYYY-MM-DD');
       const stmt = db.prepare('INSERT INTO Orders (id, userId, email, date, products) VALUES (?, ?, ?, ?, ?)');
-      stmt.run(orderId, user.Id, user.Email, date, JSON.stringify(products));
+      stmt.run(orderId, user.id, user.email, date, JSON.stringify(products));
       resolve(true);
     } catch (err) {
       console.log('Failed to create order', err);
@@ -255,7 +255,7 @@ const getOrders = (userId) => {
   });
 };
 const addToCart = (user, product) => {
-  return getUserBySearchParam({ Email: user.Email })
+  return getUserBySearchParam({ email: user.email })
     .then((userInfo) => {
       const cart = JSON.parse(userInfo.cart || '{"items":[]}');
       const cartProductIndex = cart.items.findIndex((cp) => cp.productId.toString() === product.id.toString());
@@ -276,13 +276,13 @@ const addToCart = (user, product) => {
       };
       const stmt = db.prepare('UPDATE Users SET cart = ? WHERE email = ?');
 
-      stmt.run(JSON.stringify(updatedCart), user.Email);
+      stmt.run(JSON.stringify(updatedCart), user.email);
       return true;
     });
 };
 const getCart = (user) => {
   let cartProducts;
-  return getUserBySearchParam({ Email: user.Email })
+  return getUserBySearchParam({ email: user.email })
     .then((userInfo) => {
       const cart = JSON.parse(userInfo.cart || '{"items":[]}');
       cartProducts = cart.items;
@@ -298,14 +298,14 @@ const getCart = (user) => {
     });
 }
 const removeFromCart = (user, productId) => {
-  return getUserBySearchParam({ Email: user.Email })
+  return getUserBySearchParam({ email: user.email })
     .then((userInfo) => {
       const cart = JSON.parse(userInfo.cart || '{"items":[]}');
       const updatedCartItems = cart.items.filter((i) => i.productId.toString() !== productId.toString());
       cart.items = updatedCartItems;
       const stmt = db.prepare('UPDATE Users SET cart = ? WHERE email = ?');
 
-      stmt.run(JSON.stringify(cart), user.Email);
+      stmt.run(JSON.stringify(cart), user.email);
       return true;
     });
 };
@@ -313,7 +313,7 @@ const clearCart = (user) => {
   return new Promise((resolve, reject) => {
     try {
       const stmt = db.prepare('UPDATE Users SET cart = ? WHERE email = ?');
-      stmt.run(JSON.stringify({ "items": [] }), user.Email);
+      stmt.run(JSON.stringify({ "items": [] }), user.email);
       resolve(true);
     } catch (dbError) {
       console.error(dbError);
