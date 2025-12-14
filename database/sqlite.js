@@ -157,8 +157,8 @@ function validateLogin (email, password) {
 }
 const signupSql = db.prepare('insert into Users (id, email, password, role) values (?, ?, ?, ?)');
 function signup (user) {
-  return bcrypt.hash(user.password, 12).then((password) => {
-      signupSql.run(uuid(), user.email, password, user.role || '')
+  return bcrypt.hash(user.Password, 12).then((password) => {
+      signupSql.run(uuid(), user.Email, password, user.Role || '')
       return true
     }).catch((e) => {
       console.log('Failed to signup', e)
@@ -171,7 +171,7 @@ const addAdminUser = signup
   return bcrypt.hash(user.password, 12)
     .then((hashedPassword) => {
       const stmt = db.prepare('INSERT INTO Users (id, email, password, role) VALUES (?, ?, ?, ?)');
-      stmt.run(uuid(), user.email, hashedPassword, user.role || '');
+      stmt.run(uuid(), user.Email, hashedPassword, user.Role || '');
       return true;
     })
     .catch((err) => {
@@ -228,7 +228,7 @@ const createOrder = (user, products) => {
       const orderId = uuid();
       const date = moment().format('YYYY-MM-DD');
       const stmt = db.prepare('INSERT INTO Orders (id, userId, email, date, products) VALUES (?, ?, ?, ?, ?)');
-      stmt.run(orderId, user.id, user.email, date, JSON.stringify(products));
+      stmt.run(orderId, user.Id, user.Email, date, JSON.stringify(products));
       resolve(true);
     } catch (err) {
       console.log('Failed to create order', err);
@@ -255,7 +255,7 @@ const getOrders = (userId) => {
   });
 };
 const addToCart = (user, product) => {
-  return getUserBySearchParam({ Email: user.email })
+  return getUserBySearchParam({ Email: user.Email })
     .then((userInfo) => {
       const cart = JSON.parse(userInfo.cart || '{"items":[]}');
       const cartProductIndex = cart.items.findIndex((cp) => cp.productId.toString() === product.id.toString());
@@ -276,13 +276,13 @@ const addToCart = (user, product) => {
       };
       const stmt = db.prepare('UPDATE Users SET cart = ? WHERE email = ?');
 
-      stmt.run(JSON.stringify(updatedCart), user.email);
+      stmt.run(JSON.stringify(updatedCart), user.Email);
       return true;
     });
 };
 const getCart = (user) => {
   let cartProducts;
-  return getUserBySearchParam({ email: user.email })
+  return getUserBySearchParam({ Email: user.Email })
     .then((userInfo) => {
       const cart = JSON.parse(userInfo.cart || '{"items":[]}');
       cartProducts = cart.items;
@@ -298,14 +298,14 @@ const getCart = (user) => {
     });
 }
 const removeFromCart = (user, productId) => {
-  return getUserBySearchParam({ email: user.email })
+  return getUserBySearchParam({ Email: user.Email })
     .then((userInfo) => {
       const cart = JSON.parse(userInfo.cart || '{"items":[]}');
       const updatedCartItems = cart.items.filter((i) => i.productId.toString() !== productId.toString());
       cart.items = updatedCartItems;
       const stmt = db.prepare('UPDATE Users SET cart = ? WHERE email = ?');
 
-      stmt.run(JSON.stringify(cart), user.email);
+      stmt.run(JSON.stringify(cart), user.Email);
       return true;
     });
 };
@@ -313,7 +313,7 @@ const clearCart = (user) => {
   return new Promise((resolve, reject) => {
     try {
       const stmt = db.prepare('UPDATE Users SET cart = ? WHERE email = ?');
-      stmt.run(JSON.stringify({ "items": [] }), user.email);
+      stmt.run(JSON.stringify({ "items": [] }), user.Email);
       resolve(true);
     } catch (dbError) {
       console.error(dbError);
