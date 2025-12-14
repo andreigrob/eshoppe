@@ -1,4 +1,4 @@
-const dbAdapter = require('../database');
+const dbAdapter = require('../database').default.default;
 
 module.exports = (req, res, next) => {
   res.locals.isAuthenticated = req.session.isLoggedIn;

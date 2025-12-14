@@ -1,3 +1,3 @@
-const dbAdapter = require('./sqlite');
+import dbAdapter from './sqlite';
 
-module.exports = dbAdapter;
+export default dbAdapter;

@@ -1,11 +1,12 @@
 'use strict'
 
-require('dotenv').config({ path: './w3s-dynamic-storage/.env' })
-const bcrypt = require('bcryptjs')
-const uu = require('uuid')
-const moment = require('moment')
-const Sql = require('better-sqlite3')
-const path = require('path')
+import dotenv from 'dotenv'
+dotenv.config({ path: './w3s-dynamic-storage/.env' })
+import { compare, hash } from 'bcryptjs'
+import { v4 } from 'uuid'
+import moment from 'moment'
+import Sql from 'better-sqlite3'
+import { resolve as _resolve } from 'path'
 
 /** @type {string} */
 const dbPath = process.env.SQLITE_DB
@@ -13,10 +14,10 @@ if (!dbPath) {
   throw new Error('Missing env SQLITE_DB')
 }
 
-const db = new Sql(path.resolve(dbPath), { fileMustExist: false })
+const db = new Sql(_resolve(dbPath), { fileMustExist: false })
 
 function uuid () {
-  return uu.v4()
+  return v4()
 }
 
 /** @param {unknown} v @param {any} fallback */
@@ -149,7 +150,7 @@ function validateLogin (email, password) {
   let user
   return getUserBySearchParam({ email }).then((userInfo) => {
       user = userInfo
-      return user ? bcrypt.compare(password, user.password) : false
+      return user ? compare(password, user.password) : false
     }).then((match) => ({ match, user })).catch((e) => {
       console.log('Failed to validate login', e)
       throw e
@@ -157,7 +158,7 @@ function validateLogin (email, password) {
 }
 const signupSql = db.prepare('insert into Users (id, email, password, role) values (?, ?, ?, ?)');
 function signup (user) {
-  return bcrypt.hash(user.password, 12).then((password) => {
+  return hash(user.password, 12).then((password) => {
       signupSql.run(uuid(), user.email, password, user.role || '')
       return true
     }).catch((e) => {
@@ -198,7 +199,7 @@ const resetPassword = (userId, password, resetToken) => {
   return getUserBySearchParam({ id: userId, resetToken })
     .then((user) => {
       resetUser = user;
-      return bcrypt.hash(password, 12);
+      return hash(password, 12);
     })
     .then((hashedPassword) => {
       const stmt = db.prepare('UPDATE Users SET password = ?, resetToken = ? WHERE id = ?');
@@ -384,7 +385,7 @@ const addOrUpdateAddress = (shipmentAddress) => {
 */
 
 
-module.exports = {
+export default {
   initialize,
   addProduct,
   getProductById,
