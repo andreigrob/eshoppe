@@ -8,6 +8,8 @@ module.exports = (req, res, next) => {
         if (user) {
           req.user = user;
           res.locals.isAdmin = req.session.user.role === 'admin';
+        } else {
+           res.locals.isAdmin = false
         }
         next();
       })
