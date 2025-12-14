@@ -49,7 +49,7 @@ const postAddProduct = (req, res, next) => {
       validationErrors: errors.array(),
     });
   }
-  const newProduct = { title, price, description, details, image, userId: req.user.id };
+  const newProduct = { title, price, description, details, image, userId: req.user.Id };
   adminService.addProduct(newProduct)
     .then(() => {
       res.redirect('/admin/products');
@@ -109,7 +109,7 @@ const postEditProduct = (req, res, next) => {
       validationErrors: errors.array(),
     });
   }
-  const product = { productId, title, price, description, details, image, userId: req.user.id };
+  const product = { productId, title, price, description, details, image, userId: req.user.Id };
 
   adminService.updateProduct(product)
     .then((status) => {
@@ -124,7 +124,7 @@ const postEditProduct = (req, res, next) => {
 const getProducts = (req, res, next) => {
   const limit = 8;
   const page = +req.query.page || 1;
-  const userId = req.user.id;
+  const userId = req.user.Id;
 
   adminService.getProducts(page, limit, userId)
     .then(({ count, products }) => {

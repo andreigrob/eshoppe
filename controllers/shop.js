@@ -130,7 +130,7 @@ const getCheckoutSuccess = (req, res, next) => {
     });
 };
 const getOrders = (req, res, next) => {
-  shopService.getOrders(req.user.id)
+  shopService.getOrders(req.user.Id)
     .then((orders) => {
       res.render('shop/orders', {
         path: '/orders',
@@ -158,15 +158,15 @@ const getContact = (req, res, next) => {
 };
 const getMyPage = (req, res, next) => {
   Promise.all([
-    shopService.getOrders(req.user.id),
-    shopService.getAddressByUserId(req.user.id),
+    shopService.getOrders(req.user.Id),
+    shopService.getAddressByUserId(req.user.Id),
   ])
     .then(([orders, shipmentAddress]) => {
       res.render('shop/mypage', {
         pageTitle: 'My Page',
         path: '/mypage',
         shipmentAddress,
-        account: { email: req.user.email },
+        account: { Email: req.user.Email },
         orders,
       });
     })
@@ -177,7 +177,7 @@ const getMyPage = (req, res, next) => {
     });
 };
 const getShipment = (req, res, next) => {
-  shopService.getAddressByUserId(req.user.id)
+  shopService.getAddressByUserId(req.user.Id)
     .then((shipmentAddress) => {
       res.render('shop/shipment', {
         pageTitle: 'Shipment',
@@ -194,7 +194,7 @@ const getShipment = (req, res, next) => {
 const postShipment = (req, res, next) => {
   const { firstname, lastname, phone, address, postalcode, city, state, country } = req.body;
   const shipmentAddress = {
-    userId: req.user.id,
+    userId: req.user.Id,
     firstname, lastname, phone, address, postalcode, city, state, country
   };
 
