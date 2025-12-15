@@ -1,23 +1,23 @@
 import { Router } from 'express';
-import { getHomepage, getAbout, getContact, getProducts, getMyPage, getProduct, getCart, postCart, postCartDeleteProduct, getCheckout, getCheckoutSuccess, getOrders, getShipment, postShipment } from '../controllers/shop.js';
+import ct from '../controllers/shop.js';
 import isAuthenticated from '../middleware/isAuthenticated.js';
 
 const shopRouter = Router();
 
-shopRouter.get('/', getHomepage);
-shopRouter.get('/about', getAbout);
-shopRouter.get('/contact', getContact);
-shopRouter.get('/products', getProducts);
-shopRouter.get('/mypage', isAuthenticated, getMyPage);
-shopRouter.get('/products/:productId', getProduct);
-shopRouter.get('/cart', isAuthenticated, getCart);
-shopRouter.post('/cart', isAuthenticated, postCart);
-shopRouter.post('/cart-delete-item', isAuthenticated, postCartDeleteProduct);
-shopRouter.get('/checkout', isAuthenticated, getCheckout);
-shopRouter.get('/checkout/success', getCheckoutSuccess);
-shopRouter.get('/checkout/cancel', getCheckout);
-shopRouter.get('/orders', isAuthenticated, getOrders);
-shopRouter.get('/shipment', isAuthenticated, getShipment);
-shopRouter.post('/shipment', isAuthenticated, postShipment);
+shopRouter.get('/', ct.getHomepage);
+shopRouter.get('/about', ct.getAbout);
+shopRouter.get('/contact', ct.getContact);
+shopRouter.get('/products', ct.getProducts);
+shopRouter.get('/mypage', isAuthenticated, ct.getMyPage);
+shopRouter.get('/products/:productId', ct.getProduct);
+shopRouter.get('/cart', isAuthenticated, ct.getCart);
+shopRouter.post('/cart', isAuthenticated, ct.postCart);
+shopRouter.post('/cart-delete-item', isAuthenticated, ct.postCartDeleteProduct);
+shopRouter.get('/checkout', isAuthenticated, ct.getCheckout);
+shopRouter.get('/checkout/success', ct.getCheckoutSuccess);
+shopRouter.get('/checkout/cancel', ct.getCheckout);
+shopRouter.get('/orders', isAuthenticated, ct.getOrders);
+shopRouter.get('/shipment', isAuthenticated, ct.getShipment);
+shopRouter.post('/shipment', isAuthenticated, ct.postShipment);
 
 export default shopRouter;

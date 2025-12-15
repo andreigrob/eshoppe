@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 
-export const isValidToken = async (token) => {
+export async function isValidToken (token) {
   const data = {
     valid: false,
     message: '',

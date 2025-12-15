@@ -1,19 +1,18 @@
-const readline = require('readline');
-const prompt = require('prompt-sync')({
+import { createInterface } from 'readline';
+import promptSync from 'prompt-sync';
+
+const prompt = promptSync({
   autocomplete: undefined,
   sigint: true, // Exits the terminal command execution if prompt receives CTRL + C,
-  history: undefined
+  history: undefined,
 });
-const {
-  addAdminUser,
-  getUserBySearchParam,
-  deleteAdminUser
-} = require('../database/sqlite');
+import { addAdminUser, getUserBySearchParam, deleteAdminUser } from '../database/sqlite.js';
 
-const rl = readline.createInterface({
+const rl = createInterface({
   input: process.stdin,
   output: process.stdout
 });
+
 const passwordRequirements = [
   'Must be at least 8 characters long',
   'Must contain at least one lowercase letter',
@@ -22,27 +21,25 @@ const passwordRequirements = [
   'Must contain at least one special character (!@#$%^&*)'
 ];
 
+const emailregex = /^[a-zA-Z0-9.!#$%&'*+\=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
 const emailMeetsRequirements = (value) => {
-  const emailregex = /^[a-zA-Z0-9.!#$%&'*+\=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
   return emailregex.test(value);
 }
 
+const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{8,}$/;
 const passwordMeetsRequirements = (value) => {
-  const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{8,}$/;
   return passwordRegex.test(value);
 }
 
-const createAdministratorUser = async () => {
-
+export async function createAdministratorUser () {
   console.log("\x1b[36m Welcome to administrator user creation process! \x1b[0m")
   console.groupEnd();
   console.log(`\x1b[36m Password requirements: \x1b[0m`)
   console.group();
-  for (let index = 0; index < passwordRequirements.length; index++) {
-    console.log(`\x1b[36m ${passwordRequirements[index]}. \x1b[0m`);
+  for (const requirement of passwordRequirements) {
+    console.log(`\x1b[36m ${requirement}. \x1b[0m`);
   }
   console.groupEnd();
-
   const userEmail = await prompt("\x1b[33m Enter your email: \x1b[0m");
   if (!emailMeetsRequirements(userEmail)) {
     console.log(`\x1b[31m Email does not meet the requirements. \x1b[0m`);
@@ -77,7 +74,7 @@ const createAdministratorUser = async () => {
   return rl.close();
 };
 
-const deleteAdministratorUser = async () => {
+export async function deleteAdministratorUser () {
   console.log("\x1b[36m Welcome to deletion of administrator user process! \x1b[0m");
 
   const userEmail = await prompt("\x1b[33m Enter your email: \x1b[0m");
@@ -102,9 +99,4 @@ const deleteAdministratorUser = async () => {
     return rl.close();
   }
   return rl.close();
-}
-
-module.exports = {
-  createAdministratorUser,
-  deleteAdministratorUser
 }

@@ -1,10 +1,9 @@
-import { getUserBySearchParam } from '../database/sqlite.js';
+import { getUserBySearchParam } from '../database/sqlite.js'
 
-export default (req, res, next) => {
+export default function (req, res, next) {
   res.locals.isAuthenticated = req.session.isLoggedIn;
   if (req.session.user) {
-    getUserBySearchParam({ email: req.session.user.email })
-      .then((user) => {
+    getUserBySearchParam({ email: req.session.user.email }).then((user) => {
         if (user) {
           req.user = user;
           res.locals.isAdmin = req.session.user.role === 'admin';
@@ -12,11 +11,8 @@ export default (req, res, next) => {
           res.locals.isAdmin = false
         }
         next();
-      })
-      .catch((err) => {
-        next(new Error(err));
-      });
+      }).catch((e) => next(new Error(e)));
   } else {
-    next();
+    return next();
   }
-};
+}

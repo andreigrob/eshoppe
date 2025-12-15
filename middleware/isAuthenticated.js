@@ -1,6 +1,3 @@
-export default (req, res, next) => {
-  if (!req.session.isLoggedIn) {
-    return res.redirect('/login');
-  }
-  next();
-};
+export default function (req, res, next) {
+  return req.session.isLoggedIn ? next() : res.redirect('/login')
+}

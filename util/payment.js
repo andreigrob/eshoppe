@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-export const processCheckout = (products, req) => {
+export function processCheckout (products, _req) {
   return stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     mode: 'payment',
@@ -23,6 +23,3 @@ export const processCheckout = (products, req) => {
   });
 };
 
-export default {
-  processCheckout,
-};

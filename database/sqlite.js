@@ -383,3 +383,16 @@ export const addOrUpdateAddress = (shipmentAddress) => {
     4. Test if updateProduct function updates the details of a product correctly.
     5. Test if getProducts function returns the correct list of products based on pagination parameters.
 */
+
+export default {
+  initialize,
+  addProduct,
+  getProductById,
+  updateProduct,
+  getProducts,
+  deleteProduct,
+  removeProductFromCart,
+  getUserBySearchParam,
+  validateLogin,
+  signup,
+}

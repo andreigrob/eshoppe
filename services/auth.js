@@ -1,10 +1,13 @@
-import { v4 as uuid } from 'uuid';
-import { validateLogin as _validateLogin, signup as _signup, attachResetPasswordToken, getUserBySearchParam as _getUserBySearchParam, resetPassword } from '../database/sqlite.js';
-import { sendEmail } from '../util/email.js';
+import { v4 as uuid } from 'uuid'
+import db from '../database/sqlite.js'
+import { sendEmail } from '../util/email.js'
 
-export const validateLogin = (email, password) => _validateLogin(email, password);
-export const signup = (user) => {
-  return _signup(user)
+export function validateLogin (email, password) {
+  return db.validateLogin(email, password)
+}
+
+export function signup (user) {
+  return db.signup(user)
     .then((status) => {
       if (status) {
         sendEmail({
@@ -16,10 +19,10 @@ export const signup = (user) => {
       return status;
     });
 };
-export const sendResetPasswordToken = (email) => {
+export function sendResetPasswordToken (email) {
   const token = uuid();
 
-  return attachResetPasswordToken(email, token)
+  return db.attachResetPasswordToken(email, token)
     .then(() => {
       sendEmail({
         to: email,
@@ -32,9 +35,12 @@ export const sendResetPasswordToken = (email) => {
       });
     })
 };
-export const getUserBySearchParam = (param) => _getUserBySearchParam(param);
-export const setNewPassword = (userId, newPassword, passwordToken) => {
-  return resetPassword(userId, newPassword, passwordToken)
+export function getUserBySearchParam (param) {
+  return db.getUserBySearchParam(param)
+}
+
+export function setNewPassword (userId, newPassword, passwordToken) {
+  return db.resetPassword(userId, newPassword, passwordToken)
     .then(() => {
       sendEmail({
         to: resetUser.email,
