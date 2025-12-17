@@ -1,9 +1,16 @@
 import Stripe from 'stripe';
+
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+const method = ['card']
+
+const domain = process.env.DOMAIN
+const successUrl = domain + "/checkout/success"
+const cancelUrl = domain + "/checkout/cancel"
 
 export function processCheckout (products, _req) {
   return stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
+    payment_method_types: method,
     mode: 'payment',
     line_items: products.map((p) => {
       return {
@@ -16,10 +23,9 @@ export function processCheckout (products, _req) {
           },
         },
         quantity: p.quantity,
-      };
+      }
     }),
-    success_url: `${process.env.DOMAIN}/checkout/success`,
-    cancel_url: `${process.env.DOMAIN}/checkout/cancel`,
-  });
-};
-
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+  })
+}

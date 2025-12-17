@@ -1,9 +1,7 @@
-'use strict'
-
 import dotenv from 'dotenv'
 dotenv.config({ path: './w3s-dynamic-storage/.env' })
 import bcrypt from 'bcryptjs'
-import { v4 } from 'uuid'
+import { v4 as uuid } from 'uuid'
 import moment from 'moment'
 import Sql from 'better-sqlite3'
 import { resolve as _resolve } from 'path'
@@ -15,10 +13,6 @@ if (!dbPath) {
 }
 
 const db = new Sql(_resolve(dbPath), { fileMustExist: false })
-
-function uuid () {
-  return v4()
-}
 
 /** @param {unknown} v @param {any} fallback */
 function safeJsonParse(v, fallback) {
@@ -62,9 +56,16 @@ export function initialize () {
   return Promise.resolve(db)
 }
 
-function reject (r, e, m) {
-  console.log(m, e)
-  r(e)
+function reject (r, e, m, err) {
+  if (err) {
+    console.error(m, e)
+  } else {
+    console.log(m, e)
+  }
+  if (!r) {
+    throw e
+  }
+  return r(e)
 }
 
 const newProductSql = db.prepare('insert into Products (Id, Title, Price, Description, Details, ImageUrl, ImageKey) values (?, ?, ?, ?, ?, ?, ?)')
@@ -99,8 +100,7 @@ export function updateProduct (p) {
       updateProductSql.run(p.title, p.price, p.description, p.details, p.imageUrl || product.imageUrl, p.imageKey || product.imageKey, p.productId)
       return true
     }).catch((e) => {
-      console.log('Failed to update product', e)
-      throw e
+      reject(null, e, 'Failed to update product')
     })
 }
 
@@ -140,8 +140,7 @@ export function getUserBySearchParam (param) {
       const user = db.prepare(`select * from Users where ${condition}`).get()
       resolve(user)
     } catch (e) {
-      console.error(e)
-      r(e)
+      reject(r, e, 'Error getting user by search parameter', true)
     }
   })
 }
@@ -152,8 +151,7 @@ export function validateLogin (email, password) {
       user = userInfo
       return user ? bcrypt.compare(password, user.password) : false
     }).then((match) => ({ match, user })).catch((e) => {
-      console.log('Failed to validate login', e)
-      throw e
+      reject(null, e, 'Failed to validate login')
     })
 }
 const signupSql = db.prepare('insert into Users (id, email, password, role) values (?, ?, ?, ?)');
@@ -162,24 +160,22 @@ export function signup (user) {
       signupSql.run(uuid(), user.email, password, user.role || '')
       return true
     }).catch((e) => {
-      console.log('Failed to signup', e)
-      throw e
+      reject(null, e, 'Failed to signup')
     })
 }
 
 const addAdminUser = signup
-/*const addAdminUser = (user) => {
-  return bcrypt.hash(user.password, 12)
-    .then((hashedPassword) => {
-      const stmt = db.prepare('INSERT INTO Users (id, email, password, role) VALUES (?, ?, ?, ?)');
-      stmt.run(uuid(), user.email, hashedPassword, user.role || '');
-      return true;
+/*
+const addAdminSql = db.prepare('insert into Users (id, email, password, role) values (?, ?, ?, ?)')
+function addAdminUser (user) {
+  return bcrypt.hash(user.password, 12).then((hashedPassword) => {
+      addAdminSql.run(uuid(), user.email, hashedPassword, user.role || '')
+      return true
+    }).catch((e) => {
+      reject(null, e, 'Failed to add admin user')
     })
-    .catch((err) => {
-      console.log('Failed to add admin user', err);
-      throw err;
-    });
-};*/
+}
+*/
 
 const updateTokenSql = db.prepare('update Users set resetToken = ? where email = ?')
 export function attachResetPasswordToken (email, token) {
@@ -190,204 +186,177 @@ export function attachResetPasswordToken (email, token) {
       updateTokenSql.run(token, email)
       return true
     }).catch((e) => {
-      console.log('Failed to attach reset password token', e)
-      throw e
+      reject(null, e, 'Failed to attach reset password token')
     })
 }
 
-export const resetPassword = (userId, password, resetToken) => {
-  return getUserBySearchParam({ id: userId, resetToken })
-    .then((user) => {
-      resetUser = user;
+const resetPasswordSql = db.prepare('update Users set password = ?, resetToken = ? where id = ?')
+export function resetPassword (userId, password, resetToken) {
+  return getUserBySearchParam({ id: userId, resetToken }).then(() => {
       return bcrypt.hash(password, 12);
+    }).then((hashedPassword) => {
+      resetPasswordSql.run(hashedPassword, '', userId)
+      return true
+    }).catch((e) => {
+      reject(null, e, 'Failed to reset password')
     })
-    .then((hashedPassword) => {
-      const stmt = db.prepare('UPDATE Users SET password = ?, resetToken = ? WHERE id = ?');
-      stmt.run(hashedPassword, '', userId);
-      return true;
-    })
-    .catch((err) => {
-      console.log('Failed to reset password', err);
-      throw err;
-    });
-};
-const deleteAdminUser = (userEmail) => {
-  return new Promise((resolve, reject) => {
-    try {
-      const stmt = db.prepare('DELETE FROM Users WHERE email = ? AND role = ?');
-      stmt.run(userEmail, 'admin');
-      resolve(true);
-    } catch (err) {
-      console.log('Failed to delete admin user', err);
-      reject(err)
-    }
-  });
 }
-export const createOrder = (user, products) => {
-  return new Promise((resolve, reject) => {
+
+const deleteAdminSql = db.prepare('delete from Users where email = ? and role = ?')
+function deleteAdminUser (userEmail) {
+  return new Promise((resolve, r) => {
     try {
-      const orderId = uuid();
-      const date = moment().format('YYYY-MM-DD');
-      const stmt = db.prepare('INSERT INTO Orders (id, userId, email, date, products) VALUES (?, ?, ?, ?, ?)');
-      stmt.run(orderId, user.id, user.email, date, JSON.stringify(products));
-      resolve(true);
-    } catch (err) {
-      console.log('Failed to create order', err);
-      reject(err)
+      deleteAdminSql.run(userEmail, 'admin')
+      resolve(true)
+    } catch (e) {
+      reject(r, e, 'Failed to delete admin user')
     }
-  });
-};
-export const getOrders = (userId) => {
-  return new Promise((resolve, reject) => {
+  })
+}
+
+const createOrderSql = db.prepare('insert into Orders (id, userId, email, date, products) values (?, ?, ?, ?, ?)')
+function createOrder (user, products) {
+  return new Promise((resolve, r) => {
     try {
-      const orders = db.prepare(`SELECT * from Orders WHERE userId = ?`).all(userId);
+      const orderId = uuid()
+      const date = moment().format('YYYY-MM-DD')
+      createOrderSql.run(orderId, user.id, user.email, date, JSON.stringify(products))
+      resolve(true)
+    } catch (e) {
+      reject(r, e, 'Failed to create order')
+    }
+  })
+}
+
+const getOrdersSql = db.prepare('select * from Orders where userId = ?')
+export function getOrders (userId) {
+  return new Promise((resolve, r) => {
+    try {
+      const orders = getOrdersSql.all(userId)
       orders.forEach((o) => {
-        o.user = {
-          email: o.email,
-          userId: o.userId
-        };
-        o.products = JSON.parse(o.products);
-      });
-      resolve(orders);
-    } catch (dbError) {
-      console.error(dbError);
-      reject(dbError);
+        o.user = {email: o.email, userId: o.userId,}
+        o.products = JSON.parse(o.products)
+      })
+      resolve(orders)
+    } catch (e) {
+      reject(r, e, 'Error getting order for user ' + userId, true)
     }
-  });
-};
-export const addToCart = (user, product) => {
-  return getUserBySearchParam({ email: user.email })
-    .then((userInfo) => {
-      const cart = JSON.parse(userInfo.cart || '{"items":[]}');
-      const cartProductIndex = cart.items.findIndex((cp) => cp.productId.toString() === product.id.toString());
-      const updatedCartItems = [...cart.items];
-      let newQuantity = 1;
+  })
+}
 
+const noItems = '{"items":[]}'
+const addItemSql = db.prepare('UPDATE Users SET cart = ? WHERE email = ?')
+export function addToCart (user, product) {
+  return getUserBySearchParam({email: user.email}).then((userInfo) => {
+      const cart = JSON.parse(userInfo.cart || noItems)
+      const cartProductIndex = cart.items.findIndex((cp) => cp.productId.toString() === product.id.toString())
+      const updatedCartItems = [...cart.items]
       if (cartProductIndex >= 0) {
-        newQuantity = cart.items[cartProductIndex].quantity + 1;
-        updatedCartItems[cartProductIndex].quantity = newQuantity;
+        updatedCartItems[cartProductIndex].quantity = cart.items[cartProductIndex].quantity + 1
       } else {
-        updatedCartItems.push({
-          productId: product.id,
-          quantity: newQuantity,
-        });
+        updatedCartItems.push({productId: product.id, quantity: 1,})
       }
-      const updatedCart = {
-        items: updatedCartItems,
-      };
-      const stmt = db.prepare('UPDATE Users SET cart = ? WHERE email = ?');
-
-      stmt.run(JSON.stringify(updatedCart), user.email);
-      return true;
-    });
-};
-export const getCart = (user) => {
-  let cartProducts;
-  return getUserBySearchParam({ email: user.email })
-    .then((userInfo) => {
-      const cart = JSON.parse(userInfo.cart || '{"items":[]}');
-      cartProducts = cart.items;
-      return Promise.all(cart.items.map((item) => getProductById(item.productId)));
+      const updatedCart = {items: updatedCartItems,} 
+      addItemSql.run(JSON.stringify(updatedCart), user.email)
+      return true
     })
-    .then((products) => {
+}
+
+export function getCart (user) {
+  let cartProducts;
+  return getUserBySearchParam({email: user.email,}).then((userInfo) => {
+      const cart = JSON.parse(userInfo.cart || noItems)
+      cartProducts = cart.items
+      return Promise.all(cartProducts.map((item) => getProductById(item.productId)))
+    }).then((products) => {
       return cartProducts.reduce((acc, p, index) => {
         if (products[index]) {
-          acc.push({ ...p, productId: products[index] })
+          acc.push({...p, productId: products[index],})
         }
-        return acc;
-      }, []);
-    });
+        return acc
+      }, [])
+    })
 }
-export const removeFromCart = (user, productId) => {
-  return getUserBySearchParam({ email: user.email })
-    .then((userInfo) => {
-      const cart = JSON.parse(userInfo.cart || '{"items":[]}');
-      const updatedCartItems = cart.items.filter((i) => i.productId.toString() !== productId.toString());
-      cart.items = updatedCartItems;
-      const stmt = db.prepare('UPDATE Users SET cart = ? WHERE email = ?');
 
-      stmt.run(JSON.stringify(cart), user.email);
-      return true;
-    });
-};
-export const clearCart = (user) => {
-  return new Promise((resolve, reject) => {
+const removeItemSql = db.prepare('update Users set cart = ? where email = ?')
+export function removeFromCart (user, productId) {
+  return getUserBySearchParam({email: user.email,}).then((userInfo) => {
+      const cart = JSON.parse(userInfo.cart || noItems)
+      cart.items = cart.items.filter((i) => i.productId.toString() !== productId.toString())
+      removeItemSql.run(JSON.stringify(cart), user.email)
+      return true
+    })
+}
+
+const noItemsStr = JSON.stringify(noItems)
+const clearItemsSql = db.prepare(`update Users set cart = '${noItemsStr}' where email = ?`)
+export function clearCart (user) {
+  return new Promise((resolve, r) => {
     try {
-      const stmt = db.prepare('UPDATE Users SET cart = ? WHERE email = ?');
-      stmt.run(JSON.stringify({ "items": [] }), user.email);
-      resolve(true);
-    } catch (dbError) {
-      console.error(dbError);
-      reject(dbError);
+      clearItemsSql.run(user.email)
+      resolve(true)
+    } catch (e) {
+      reject(r, e, 'Error clearing cart', true)
     }
-  });
-};
-const createAddress = (shipmentAddress) => {
-  return new Promise((resolve, reject) => {
+  })
+}
+
+const createAddressSql = db.prepare('insert into ShipmentAddresses (id, userId, address) values (?, ?, ?)')
+export function createAddress (shipmentAddress) {
+  return new Promise((resolve, r) => {
     try {
-      const userId = shipmentAddress.userId;
-      delete shipmentAddress.userId;
-      const stmt = db.prepare('INSERT INTO ShipmentAddresses (id, userId, address) VALUES (?, ?, ?)');
-      stmt.run(uuid(), userId, JSON.stringify(shipmentAddress));
-      resolve(true);
-    } catch (err) {
-      console.log('Failed to create shipment address', err);
-      reject(err)
+      const userId = shipmentAddress.userId
+      delete shipmentAddress.userId    
+      createAddressSql.run(uuid(), userId, JSON.stringify(shipmentAddress))
+      resolve(true)
+    } catch (e) {
+      reject(r, e, 'Failed to create shipment address', true)
     }
-  });
-};
-const updateAddress = (shipmentAddress) => {
-  return new Promise((resolve, reject) => {
+  })
+}
+
+const updateAddressSql = db.prepare('update ShipmentAddresses set address = ? where userId = ?')
+export function updateAddress (shipmentAddress) {
+  return new Promise((resolve, r) => {
     try {
-      const userId = shipmentAddress.userId;
-      delete shipmentAddress.userId;
-      delete shipmentAddress.id;
-      const stmt = db.prepare('UPDATE ShipmentAddresses SET address = ? WHERE userId = ?');
-      stmt.run(JSON.stringify(shipmentAddress), userId);
-      resolve(true);
-    } catch (err) {
-      console.log('Failed to update shipment address', err);
-      reject(err)
+      const userId = shipmentAddress.userId
+      delete shipmentAddress.userId
+      delete shipmentAddress.id
+      updateAddressSql.run(JSON.stringify(shipmentAddress), userId)
+      resolve(true)
+    } catch (e) {
+      reject(r, e, 'Failed to update shipment address')
     }
-  });
-};
-export const getAddressByUserId = (userId) => {
-  return new Promise((resolve, reject) => {
+  })
+}
+
+const getAddressSql = db.prepare('select * from ShipmentAddresses where userId = ?')
+export function getAddressByUserId (userId) {
+  return new Promise((resolve, r) => {
     try {
-      const stmt = db.prepare(`SELECT * from ShipmentAddresses WHERE userId = ?`);
-      const value = stmt.get(userId);
-      let shipmentAddress = { ...(value || {}) };
-      
+      const value = getAddressSql.get(userId)
+      let shipmentAddress = { ...(value || {}) }
       if (shipmentAddress.id) {
         shipmentAddress = Object.assign({}, shipmentAddress, JSON.parse(shipmentAddress.address))
       }
-      resolve(shipmentAddress);
-    } catch (err) {
-      console.log('Failed to get shipment address', err);
-      reject(err)
+      resolve(shipmentAddress)
+    } catch (e) {
+      reject(r, e, 'Failed to get shipment address');
     }
-  });
-};
-export const addOrUpdateAddress = (shipmentAddress) => {
-  return getAddressByUserId(shipmentAddress.userId)
-  .then((savedAddress) => {
-    return savedAddress.id ? updateAddress(shipmentAddress) : createAddress(shipmentAddress);
-  });
+  })
 }
 
-/*    JavaScript
-    Unit tests:
-    1. Test if initialize function creates tables in the database correctly.
-    2. Test if addProduct function adds a new product to the database.
-    3. Test if getProductById function retrieves the correct product by its ID.
-    4. Test if updateProduct function updates the details of a product correctly.
-    5. Test if getProducts function returns the correct list of products based on pagination parameters.
-*/
+export function addOrUpdateAddress (shipmentAddress) {
+  return getAddressByUserId(shipmentAddress.userId).then((savedAddress) => {
+    return savedAddress.id ? updateAddress(shipmentAddress) : createAddress(shipmentAddress)
+  })
+}
 
 export default {
   initialize,
   addProduct,
   getProductById,
+  createOrder,
   updateProduct,
   getProducts,
   deleteProduct,
@@ -395,4 +364,6 @@ export default {
   getUserBySearchParam,
   validateLogin,
   signup,
+  addAdminUser,
+  deleteAdminUser,
 }

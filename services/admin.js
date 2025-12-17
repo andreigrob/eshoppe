@@ -3,14 +3,17 @@ import { extname } from 'path';
 import db from '../database/sqlite.js';
 import fs from '../util/file.js';
 
+function Key (product) {
+  const key = uuid() + extname(product.image.originalname)
+  product.imageUrl = '/' + key
+  product.imageKey = key
+  return key
+}
+
 export function addProduct (product) {
-  const fileExtension = extname(product.image.originalname);
-  const key = `${uuid()}${fileExtension}`;
-  return fs.uploadFile(key, product.image).then(() => {
-      product.imageUrl = `/${key}`;
-      product.imageKey = key;
-      delete product.image;
-      return db.addProduct(product);
+  return fs.uploadFile(Key(product), product.image).then(() => {
+      delete product.image
+      return db.addProduct(product)
     })
 }
 
@@ -20,15 +23,10 @@ export function getProduct (productId) {
 
 export async function updateProduct (product) {
   if (product.image) {
-    const fileExtension = extname(product.image.originalname);
-    const key = `${uuid()}${fileExtension}`;
-    await fs.uploadFile(key, product.image)
-
-    product.imageUrl = `/${key}`;
-    product.imageKey = key;
-    delete product.image;
+    await fs.uploadFile(Key(product), product.image)
+    delete product.image
   }
-  return await db.updateProduct(product);
+  return await db.updateProduct(product)
 }
 
 export function getProducts (page, limit, userId) {
@@ -49,11 +47,10 @@ export function deleteProduct (productId) {
 }
 
 export function uploadFile (file) {
-  const fileExtension = extname(file.originalname)
-  const key = `${uuid()}${fileExtension}`
+  const key = uuid() + extname(file.originalname)
   return fs.uploadFile(key, file).then(() => ({
       uploaded: true,
-      url: `/${key}`,
+      url: '/' + key,
       key,
     }))
 }

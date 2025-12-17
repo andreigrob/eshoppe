@@ -1,16 +1,14 @@
-import { createTransport } from 'nodemailer';
-const { EMAIL_HOST, EMAIL_PORT, EMAIL_AUTH_USER, EMAIL_AUTH_PASS, EMAIL_FROM } = process.env;
+import { createTransport } from 'nodemailer'
+
+const vars = process.env
 
 const transporter = createTransport({
-  host: EMAIL_HOST,
-  port: parseInt(EMAIL_PORT),
-  auth: {
-    user: EMAIL_AUTH_USER,
-    pass: EMAIL_AUTH_PASS
-  }
+  host: vars.EMAIL_HOST,
+  port: parseInt(vars.EMAIL_PORT),
+  auth: {user: vars.EMAIL_AUTH_USER, pass: vars.EMAIL_AUTH_PASS,},
 });
 
 export function sendEmail (options) {
-  options.from = EMAIL_FROM
+  options.from = vars.EMAIL_FROM
   return transporter.sendMail(options);
 }
