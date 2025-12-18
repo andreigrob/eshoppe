@@ -1,211 +1,112 @@
-import { getProducts as _getProducts, getProduct as _getProduct, getCart as _getCart, addToCart, removeFromCart, checkout, processOrder, getOrders as _getOrders, getAddressByUserId, addOrUpdateAddress } from '../services/shop.js';
+import shop from '../services/shop.js'
+import { catchFunc, getInt1, Page } from './common.js'
 
-export const getProducts = (req, res, next) => {
-  const page = +req.query.page || 1;
-  const limit = 8;
+function getProducts (req, res, next) {
+  const page = getInt1(req.query.page)
+  return shop.getProducts(page, productLimit).then((args) => {
+      return res.render('shop/product-list', Page('Products', '/products', page, args))
+    }).catch(catchFunc(next))
+}
 
-  _getProducts(page, limit)
-    .then(({ count, products }) => {
-      res.render('shop/product-list', {
-        prods: products,
-        pageTitle: 'Products',
-        path: '/products',
-        currentPage: page,
-        hasNextPage: limit * page < count,
-        hasPreviousPage: page > 1,
-        nextPage: page + 1,
-        previousPage: page - 1,
-        lastPage: Math.ceil(count / limit),
-      });
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const getProduct = (req, res, next) => {
-  _getProduct(req.params.productId)
-    .then((product) => {
-      res.render('shop/product-detail', {
-        product,
-        pageTitle: product.title,
-        path: '/products',
-      });
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const getHomepage = (req, res, next) => {
-  const page = +req.query.page || 1;
-  const limit = 8;
+function getProduct (req, res, next) {
+  return shop.getProduct(req.params.productId).then((product) => {
+      return res.render('shop/product-detail', {product, pageTitle: product.title, path: '/products',})
+    }).catch(catchFunc(next))
+}
 
-  _getProducts(page, limit)
-    .then(({ count, products }) => {
-      res.render('shop/index', {
-        pageTitle: 'Home',
-        path: '/',
-        prods: products,
-        currentPage: page,
-        hasNextPage: limit * page < count,
-        hasPreviousPage: page > 1,
-        nextPage: page + 1,
-        previousPage: page - 1,
-        lastPage: Math.ceil(count / limit),
-      });
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const getCart = (req, res, next) => {
-  _getCart(req.user)
-    .then((products) => {
-      res.render('shop/cart', {
-        path: '/cart',
-        pageTitle: 'Your Cart',
-        products,
-      });
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const postCart = (req, res, next) => {
-  addToCart(req.body.productId, req.user)
-    .then(() => {
-      res.redirect('/cart');
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const postCartDeleteProduct = (req, res, next) => {
-  removeFromCart(req.body.productId, req.user)
-    .then((result) => {
-      res.redirect('/cart');
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const getCheckout = (req, res, next) => {
-  checkout(req.user, req)
-    .then(({ session, totalCost, products }) => {
-      res.render('shop/checkout', {
+function getHomepage (req, res, next) {
+  const page = getInt1(req.query.page)
+  return shop.getProducts(page, productLimit).then((args) => {
+      return res.render('shop/index', Page('Home', '/', page, args))
+    }).catch(catchFunc(next))
+}
+
+function getCart (req, res, next) {
+  return shop.getCart(req.user).then((products) => {
+      return res.render('shop/cart', {path: '/cart', pageTitle: 'Your Cart', products,})
+    }).catch(catchFunc(next))
+}
+
+function postCart (req, res, next) {
+  return shop.addToCart(req.body.productId, req.user).then(() => {
+      return res.redirect('/cart')
+    }).catch(catchFunc(next))
+}
+
+function postCartDeleteProduct (req, res, next) {
+  return shop.removeFromCart(req.body.productId, req.user).then((_result) => {
+      return res.redirect('/cart')
+    }).catch(catchFunc(next))
+}
+
+const stripeKey = process.env.STRIPE_PUBLISHABLE_KEY
+function getCheckout (req, res, next) {
+  return shop.checkout(req.user, req).then((args) => {
+      return res.render('shop/checkout', {
         path: '/checkout',
         pageTitle: 'Checkout',
-        products,
-        totalSum: totalCost,
-        sessionId: session.id,
-        stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
-      });
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const getCheckoutSuccess = (req, res, next) => {
-  processOrder(req.user)
-    .then(() => {
-      res.redirect('/orders');
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const getOrders = (req, res, next) => {
-  _getOrders(req.user.id)
-    .then((orders) => {
-      res.render('shop/orders', {
-        path: '/orders',
-        pageTitle: 'Your Orders',
-        orders,
-      });
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const getAbout = (_req, res, _next) => {
-  res.render('shop/about', {
-    pageTitle: 'About',
-    path: '/about',
-  });
-};
-export const getContact = (_req, res, _next) => {
-  res.render('shop/contact', {
-    pageTitle: 'About',
-    path: '/about',
-  });
-};
-export const getMyPage = (req, res, next) => {
-  Promise.all([
-    _getOrders(req.user.id),
-    getAddressByUserId(req.user.id),
-  ])
-    .then(([orders, shipmentAddress]) => {
-      res.render('shop/mypage', {
+        products: args.products,
+        totalSum: args.totalCost,
+        sessionId: args.session.id,
+        stripePublishableKey: stripeKey,
+      })
+    }).catch(catchFunc(next))
+}
+
+function getCheckoutSuccess (req, res, next) {
+  return shop.processOrder(req.user).then(() => {
+      return res.redirect('/orders');
+    }).catch(catchFunc(next))
+}
+
+function getOrders (req, res, next) {
+  return shop.getOrders(req.user.id).then((orders) => {
+      return res.render('shop/orders', {path: '/orders', pageTitle: 'Your Orders', orders,})
+    }).catch(catchFunc(next))
+}
+
+function getAbout (_req, res, _next) {
+  return res.render('shop/about', {pageTitle: 'About', path: '/about',})
+}
+
+function getContact (_req, res, _next) {
+  return res.render('shop/contact', {pageTitle: 'About', path: '/about',})
+}
+
+function getMyPage (req, res, next) {
+  return Promise.all([ shop.getOrders(req.user.id), shop.getAddressByUserId(req.user.id), ]).then((args) => {
+      return res.render('shop/mypage', {
         pageTitle: 'My Page',
         path: '/mypage',
-        shipmentAddress,
-        account: { email: req.user.email },
-        orders,
-      });
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const getShipment = (req, res, next) => {
-  getAddressByUserId(req.user.id)
-    .then((shipmentAddress) => {
-      res.render('shop/shipment', {
-        pageTitle: 'Shipment',
-        path: '/shipment',
-        shipmentAddress,
-      });
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const postShipment = (req, res, next) => {
-  const { firstname, lastname, phone, address, postalcode, city, state, country } = req.body;
+        shipmentAddress: args[1],
+        account: {email: req.user.email,},
+        orders: args[0],
+      })
+    }).catch(catchFunc(next))
+}
+
+function getShipment (req, res, next) {
+  return shop.getAddressByUserId(req.user.id).then((shipmentAddress) => {
+      return res.render('shop/shipment', {pageTitle: 'Shipment', path: '/shipment', shipmentAddress,})
+    }).catch(catchFunc(next))
+}
+
+function postShipment (req, res, next) {
+  const u = req.body
   const shipmentAddress = {
     userId: req.user.id,
-    firstname, lastname, phone, address, postalcode, city, state, country
-  };
-
-  addOrUpdateAddress(shipmentAddress)
-    .then(() => getMyPage(req, res, next))
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
+    firstname: u.firstname,
+    lastname: u.lastname,
+    phone: u.phone,
+    address: u.address,
+    postalcode: u.postalcode,
+    city: u.city,
+    state: u.state,
+    country: u.country,
+  }
+  return shop.addOrUpdateAddress(shipmentAddress).then(() =>
+    getMyPage(req, res, next)).catch(catchFunc(next))
+}
 
 export default {
   getProducts,
@@ -222,4 +123,4 @@ export default {
   getMyPage,
   getShipment,
   postShipment
-};
+}

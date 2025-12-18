@@ -1,174 +1,122 @@
-import { addProduct, getProduct, updateProduct, getProducts as _getProducts, deleteProduct as _deleteProduct, uploadFile } from '../services/admin.js';
-import { validationResult } from 'express-validator';
+import { validationResult } from 'express-validator'
+import { catchFunc, getInt1 } from './common.js'
+import admin from '../services/admin.js'
 
-export const getAddProduct = (_req, res, _next) => {
-  res.render('admin/add-edit-form', {
+const empty = []
+
+const getAddProductModel = {
     pageTitle: 'Add Product',
     path: '/admin/add-product',
     editing: false,
     hasError: false,
     errorMessage: null,
-    validationErrors: [],
-  });
-};
-export const postAddProduct = (req, res, next) => {
-  const { title, price, description, details } = req.body;
-  const image = req.file;
+    validationErrors: empty,
+  }
+function getAddProduct (_req, res, _next) {
+  return res.render('admin/add-edit-form', getAddProductModel)
+}
 
-  if (!image) {
+function postAddProduct (req, res, next) {
+  const p = req.body
+  const product = {title: p.title, price: p.price, description: p.description, details: p.details, image: req.file, userId: req.user.id,}
+  function errorRes (errorMessage, validationErrors) {
     return res.status(422).render('admin/add-edit-form', {
       pageTitle: 'Add Product',
       path: '/admin/add-product',
       editing: false,
       hasError: true,
-      product: {
-        title,
-        price,
-        description,
-        details,
-      },
-      errorMessage: 'File type not supported. Please upload a JPEG, JPG, or PNG image file.',
-      validationErrors: [],
-    });
-  }
-  const errors = validationResult(req);
-
-  if (errors && !errors.isEmpty()) {
-    return res.status(422).render('admin/add-edit-form', {
-      pageTitle: 'Add Product',
-      path: '/admin/add-product',
-      editing: false,
-      hasError: true,
-      product: {
-        title,
-        price,
-        description,
-        details,
-      },
-      errorMessage: errors.array()[0].msg,
-      validationErrors: errors.array(),
-    });
-  }
-  const newProduct = { title, price, description, details, image, userId: req.user.id };
-  addProduct(newProduct)
-    .then(() => {
-      res.redirect('/admin/products');
+      product,
+      errorMessage,
+      validationErrors,
     })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const getEditProduct = (req, res, next) => {
-  const editMode = req.query.edit;
-
-  if (!editMode) {
-    return res.redirect('/');
   }
-  getProduct(req.params.productId)
-    .then((product) => {
+  if (!product.image) {
+    return errorRes('File type not supported. Please upload a JPEG, JPG, or PNG image file.', empty)
+  }
+  const errors = validationResult(req)
+  if (errors && !errors.isEmpty()) {
+    return errorRes(errors.array()[0].msg, errors.array())
+  }
+  admin.addProduct(product).then(() => {
+      res.redirect('/admin/products')
+    }).catch(catchFunc(next))
+}
+
+function getEditProduct (req, res, next) {
+  const editMode = req.query.edit
+  if (!editMode) {
+    return res.redirect('/')
+  }
+  admin.getProduct(req.params.productId).then((product) => {
       if (!product) {
-        return res.redirect('/');
+        return res.redirect('/')
       }
-      res.render('admin/add-edit-form', {
+      return res.render('admin/add-edit-form', {
         pageTitle: 'Edit Product',
         path: '/admin/edit-product',
         editing: editMode,
         product,
         hasError: false,
         errorMessage: null,
-        validationErrors: [],
-      });
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const postEditProduct = (req, res, next) => {
-  const { productId, title, price, description, details } = req.body;
-  const image = req.file;
-  const errors = validationResult(req);
+        validationErrors: empty,
+      })
+    }).catch(catchFunc(next))
+}
 
+function postEditProduct (req, res, next) {
+  const p = req.body
+  const product = {id: p.productId, productId: p.productId, title: p.title, price: p.price, description: p.description, details: p.details, image: req.file, userId: req.user.id,}
+  const errors = validationResult(req)
   if (errors && !errors.isEmpty()) {
     return res.status(422).render('admin/add-edit-form', {
       pageTitle: 'Edit Product',
       path: '/admin/edit-product',
       editing: true,
       hasError: true,
-      product: {
-        title,
-        price,
-        description,
-        details,
-        id: productId,
-      },
+      product,
       errorMessage: errors.array()[0].msg,
       validationErrors: errors.array(),
-    });
-  }
-  const product = { productId, title, price, description, details, image, userId: req.user.id };
-
-  updateProduct(product)
-    .then((status) => {
-      res.redirect(status ? '/admin/products' : '/')
     })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const getProducts = (req, res, next) => {
-  const limit = 8;
-  const page = +req.query.page || 1;
-  const userId = req.user.id;
+  }
+  admin.updateProduct(product).then((status) => {
+      return res.redirect(status ? '/admin/products' : '/')
+    }).catch(catchFunc(next))
+}
 
-  _getProducts(page, limit, userId)
-    .then(({ count, products }) => {
+const productLimit = 8
+function getProducts (req, res, next) {
+  const page = getInt1(req.query.page)
+  return admin.getProducts(page, productLimit, req.user.id).then((args) => {
       res.render('admin/products', {
-        prods: products,
+        prods: args.products,
         pageTitle: 'Admin Products',
         path: '/admin/products',
         currentPage: page,
-        hasNextPage: limit * page < count,
+        hasNextPage: productLimit * page < args.count,
         hasPreviousPage: page > 1,
         nextPage: page + 1,
         previousPage: page - 1,
-        lastPage: Math.ceil(count / limit),
-      });
+        lastPage: Math.ceil(args.count / productLimit),
+      })
+    }).catch(catchFunc(next))
+}
+
+function deleteProduct (req, res, _next) {
+  return admin.deleteProduct(req.params.productId).then(() => {
+      return res.status(200).json({message: 'Success!',})
+    }).catch((e) => {
+      return res.status(500).json({message: 'Deleting product failed: ' + e,})
     })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-export const deleteProduct = (req, res, next) => {
-  _deleteProduct(req.params.productId)
-    .then(() => {
-      res.status(200).json({ message: 'Success!' });
-    })
-    .catch((err) => {
-      res.status(500).json({ message: 'Deleting product failed.' });
-    });
-};
-export const uploadImage = (req, res, next) => {
+}
+
+function uploadImage (req, res, _next) {
   if (!req.file) {
-    return res.status(400).json({
-      uploaded: false,
-      error: {
-        message: 'File content not found'
-      }
-    });
+    return res.status(400).json({uploaded: false, error: {message: 'File content not found',},})
   }
-  return uploadFile(req.file)
-    .then((data) => {
+  return admin.uploadFile(req.file).then((data) => {
       return res.status(200).json(data);
-    });
-};
+    })
+}
 
 export default {
   getAddProduct,
@@ -177,5 +125,5 @@ export default {
   postEditProduct,
   getProducts,
   deleteProduct,
-  uploadImage
-};
+  uploadImage,
+}
