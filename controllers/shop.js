@@ -1,5 +1,5 @@
 import shop from '../services/shop.js'
-import { catchFunc, getInt1, Page } from './common.js'
+import { catchFunc, getInt1, productLimit, Page } from './common.js'
 
 function getProducts (req, res, next) {
   const page = getInt1(req.query.page)

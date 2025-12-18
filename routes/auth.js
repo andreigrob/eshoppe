@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { check, body } from 'express-validator';
 import ct from '../controllers/auth.js';
-import { getUserBySearchParam } from '../database/sqlite.js';
+import db from '../database/sqlite.js';
 import { isValidToken } from '../util/recaptcha.js';
 
 const authRouter = Router();
@@ -16,8 +16,7 @@ authRouter.post('/login', loginValidation, ct.postLogin)
 
 authRouter.get('/signup', ct.getSignup);
 const signupValidation = [
-    check('email').isEmail().withMessage('Please enter a valid email.').custom((value) => getUserBySearchParam({ email: value })
-          .then((userDoc) => userDoc ? Promise.reject('Email already in use.') : true)).normalizeEmail(),
+    check('email').isEmail().withMessage('Please enter a valid email.').custom((email) => db.getUserByEmail(email).then((userDoc) => userDoc ? Promise.reject('Email already in use.') : true)).normalizeEmail(),
     body('password', 'Please use a password between 8 and 100 characters.').isLength({ min: 8, max: 100 }),
     body('confirmPassword').custom((value, { req }) => {
       if (value !== req.body.password) {

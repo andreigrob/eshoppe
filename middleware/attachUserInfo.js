@@ -1,9 +1,9 @@
-import { getUserBySearchParam } from '../database/sqlite.js'
+import db from '../database/sqlite.js'
 
 export default function (req, res, next) {
   res.locals.isAuthenticated = req.session.isLoggedIn;
   if (req.session.user) {
-    getUserBySearchParam({ email: req.session.user.email }).then((user) => {
+    db.getUserByEmail(req.session.user.email).then((user) => {
         if (user) {
           req.user = user;
           res.locals.isAdmin = req.session.user.role === 'admin';

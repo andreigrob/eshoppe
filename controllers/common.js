@@ -10,7 +10,7 @@ export function getInt1 (arg) {
   return +arg || 1
 }
 
-const productLimit = 8
+export const productLimit = 8
 export function Page (pageTitle, path, page, args) {
   return {
         prods: args.products,
@@ -28,5 +28,6 @@ export function Page (pageTitle, path, page, args) {
 export default {
     catchFunc,
     getInt1,
+    productLimit,
     Page,
 }
